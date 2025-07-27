@@ -1,0 +1,108 @@
+# ========================================
+# TimesheetPro - Configuração do Crontab
+# ========================================
+
+# Como instalar os scripts no crontab do macOS:
+
+## 1. Tornar scripts executáveis (já feito):
+# chmod +x /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+# chmod +x /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/stop-timesheet.sh
+
+## 2. Abrir o crontab para edição:
+# crontab -e
+
+## 3. Adicionar as linhas abaixo no crontab:
+
+# ===== CRONTAB ENTRIES =====
+
+# Iniciar TimesheetPro automaticamente na inicialização do sistema
+@reboot /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+
+# Iniciar TimesheetPro todos os dias às 8:00 AM (caso não esteja rodando)
+0 8 * * * /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+
+# Parar TimesheetPro todos os dias às 18:00 PM (6:00 PM)
+0 18 * * * /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/stop-timesheet.sh
+
+# Reiniciar TimesheetPro toda segunda-feira às 6:00 AM (manutenção semanal)
+0 6 * * 1 /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/stop-timesheet.sh && sleep 10 && /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+
+# ===== FIM DAS ENTRADAS =====
+
+## 4. Salvar e sair:
+# No vim/vi: pressione ESC, digite :wq e pressione ENTER
+# No nano: pressione Ctrl+X, depois Y, depois ENTER
+
+## 5. Verificar se foi salvo corretamente:
+# crontab -l
+
+# ========================================
+# Explicação dos Horários do Cron:
+# ========================================
+
+# Formato: minuto hora dia mês dia_da_semana comando
+#          0-59   0-23 1-31 1-12 0-7 (0 e 7 = domingo)
+
+# Exemplos de horários:
+# 0 8 * * *     - Todo dia às 8:00 AM
+# 0 18 * * *    - Todo dia às 6:00 PM
+# 0 6 * * 1     - Toda segunda-feira às 6:00 AM
+# @reboot       - Na inicialização do sistema
+# */30 * * * *  - A cada 30 minutos
+# 0 */2 * * *   - A cada 2 horas
+
+# ========================================
+# Personalização Sugerida:
+# ========================================
+
+# Para ambiente de desenvolvimento (apenas dias úteis):
+# Iniciar segunda a sexta às 8:00 AM
+0 8 * * 1-5 /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+
+# Parar segunda a sexta às 18:00 PM
+0 18 * * 1-5 /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/stop-timesheet.sh
+
+# Para servidor de produção (24/7 com reinicialização semanal):
+@reboot /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+0 3 * * 0 /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/stop-timesheet.sh && sleep 10 && /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+
+# ========================================
+# Comandos Úteis:
+# ========================================
+
+# Ver crontab atual:
+# crontab -l
+
+# Editar crontab:
+# crontab -e
+
+# Remover todo o crontab:
+# crontab -r
+
+# Testar script manualmente:
+# /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh
+# /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/stop-timesheet.sh
+
+# Ver logs do sistema (para debug do cron):
+# tail -f /var/log/system.log | grep cron
+
+# Ver logs da aplicação:
+# tail -f /Users/eberson/Documents/_Developer/_Dev/_timesheet/logs/timesheet.log
+
+# ========================================
+# Troubleshooting:
+# ========================================
+
+# 1. Se o cron não executar, verifique permissões:
+#    - Sistema > Preferências > Segurança > Privacidade > Acesso Completo ao Disco
+#    - Adicione o Terminal à lista
+
+# 2. Se ainda não funcionar, tente usar caminhos absolutos:
+#    - Use /usr/local/bin/node em vez de apenas node
+#    - Use /usr/local/bin/npm em vez de apenas npm
+
+# 3. Para debug, adicione logs no crontab:
+# 0 8 * * * /Users/eberson/Documents/_Developer/_Dev/_timesheet/scripts/start-timesheet.sh >> /tmp/cron.log 2>&1
+
+# 4. Verificar se o cron daemon está rodando:
+# sudo launchctl list | grep cron

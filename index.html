@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle de Ponto</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏰</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="logo">
+                        <span class="logo-icon">⏰</span>
+                        TimesheetPro
+                    </h1>
+                    <div class="header-actions">
+                        <button id="exportBtn" class="btn btn-outline">
+                            📤 Exportar CSV
+                        </button>
+                        <button id="clearDataBtn" class="btn btn-danger">
+                            🗑️ Limpar Dados
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Stats Cards -->
+                <section class="stats-section">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-content">
+                                <h3 id="totalRecords">0</h3>
+                                <p>Total de Registros</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⏱️</div>
+                            <div class="stat-content">
+                                <h3 id="totalHours">0:00</h3>
+                                <p>Horas Trabalhadas</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🚀</div>
+                            <div class="stat-content">
+                                <h3 id="totalExtra">0:00</h3>
+                                <p>Horas Extras</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-content">
+                                <h3 id="totalValue">R$ 0,00</h3>
+                                <p>Valor HE Acumulado</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Form Section -->
+                <section class="form-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Registrar Ponto</h2>
+                            <button id="quickFillBtn" class="btn btn-secondary">
+                                ⚡ Preenchimento Rápido
+                            </button>
+                        </div>
+                        <form id="timesheetForm" class="timesheet-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="dataEntrada">Data Entrada</label>
+                                    <input type="date" id="dataEntrada" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="horaEntrada">Hora Entrada</label>
+                                    <input type="time" id="horaEntrada" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="dataSaida">Data Saída</label>
+                                    <input type="date" id="dataSaida" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="horaSaida">Hora Saída</label>
+                                    <input type="time" id="horaSaida" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inicioAlmoco">Início Almoço</label>
+                                    <input type="time" id="inicioAlmoco">
+                                </div>
+                                <div class="form-group">
+                                    <label for="fimAlmoco">Fim Almoço</label>
+                                    <input type="time" id="fimAlmoco">
+                                </div>
+                                <div class="form-group">
+                                    <label for="horasNormais">Horas Normais</label>
+                                    <input type="time" id="horasNormais" value="08:00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="valorHora">Valor/Hora (R$)</label>
+                                    <input type="number" id="valorHora" step="0.01" min="0" placeholder="30.00">
+                                </div>
+                                <div class="form-group form-group-full">
+                                    <label for="observacao">Turno/Observação</label>
+                                    <input type="text" id="observacao" placeholder="Ex: Horário Comercial, Extra Noturno...">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="calculateBtn" class="btn btn-secondary">
+                                    🧮 Calcular
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    💾 Salvar Registro
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Results Section -->
+                <section class="results-section" id="resultsSection" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Resultado do Cálculo</h2>
+                        </div>
+                        <div class="results-grid">
+                            <div class="result-item">
+                                <label>Total Bruto:</label>
+                                <span id="resultTotalBruto">-</span>
+                            </div>
+                            <div class="result-item">
+                                <label>Tempo Almoço:</label>
+                                <span id="resultTempoAlmoco">-</span>
+                            </div>
+                            <div class="result-item">
+                                <label>Total Líquido:</label>
+                                <span id="resultTotalLiquido">-</span>
+                            </div>
+                            <div class="result-item">
+                                <label>Horas Extras:</label>
+                                <span id="resultHorasExtras">-</span>
+                            </div>
+                            <div class="result-item">
+                                <label>Valor HE (50%):</label>
+                                <span id="resultValorHE">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Table Section -->
+                <section class="table-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Registros Salvos</h2>
+                            <div class="table-actions">
+                                <input type="text" id="searchInput" placeholder="Buscar registros..." class="search-input">
+                                <select id="filterSelect" class="filter-select">
+                                    <option value="">Todos os turnos</option>
+                                    <option value="comercial">Horário Comercial</option>
+                                    <option value="noturno">Extra Noturno</option>
+                                    <option value="plantao">Plantão</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table id="timesheetTable" class="timesheet-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data Entrada</th>
+                                        <th>Hora Entrada</th>
+                                        <th>Data Saída</th>
+                                        <th>Hora Saída</th>
+                                        <th>Almoço</th>
+                                        <th>Total Líquido</th>
+                                        <th>Horas Extras</th>
+                                        <th>Valor HE</th>
+                                        <th>Observação</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dados serão inseridos via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2025 TimesheetPro - Sistema de Controle de Ponto</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Confirmação</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">Tem certeza que deseja realizar esta ação?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modalCancel" class="btn btn-secondary">Cancelar</button>
+                <button id="modalConfirm" class="btn btn-danger">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Processando...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/calculator.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/fix-dates.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

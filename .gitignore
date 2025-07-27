@@ -1,0 +1,21 @@
+# Arquivos de configuração
+.npmrc
+.env
+
+# Arquivos de lock
+*-lock.json
+
+# Diretório de dependências
+node_modules/
+
+# Arquivos de dados
+*.csv
+*.xlsx
+
+# Diretório de logs
+logs/
+# Arquivos de log
+*.log
+
+# Arquivo de PID
+timesheet.pid
