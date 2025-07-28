@@ -3,6 +3,7 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+require('dotenv').config();
 
 class TimesheetServer {
     constructor() {
@@ -25,8 +26,11 @@ class TimesheetServer {
             }
         }));
 
-        // CORS
-        this.app.use(cors());
+        // CORS - permite definir origem via variável de ambiente
+        const corsOptions = {
+            origin: process.env.CORS_ORIGIN || '*'
+        };
+        this.app.use(cors(corsOptions));
 
         // Compressão
         this.app.use(compression());
