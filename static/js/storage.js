@@ -125,15 +125,23 @@ class StorageManager {
     }
 
     // Obter estatísticas
-    getStats() {
+    getStats(userId = null) {
         const records = this.load();
         
-        let totalRecords = records.length;
+        // Filtrar por usuário se especificado
+        const userRecords = userId ? records.filter(record => record.userId === userId) : records;
+        
+        let totalRecords = userRecords.length;
         let totalMinutes = 0;
         let totalExtraMinutes = 0;
         let totalValue = 0;
+        let presentialDays = 0;
+        
+        // Constantes para cálculo presencial
+        const MIN_PRESENTIAL_DAYS = 8;
+        const MIN_PRESENTIAL_PERCENT = 40;
 
-        records.forEach(record => {
+        userRecords.forEach(record => {
             if (record.totalLiquido) {
                 totalMinutes += Utils.timeToMinutes(record.totalLiquido);
             }
@@ -143,13 +151,24 @@ class StorageManager {
             if (record.valorHE) {
                 totalValue += parseFloat(record.valorHE) || 0;
             }
+            if (record.status === 'presencial') {
+                presentialDays++;
+            }
         });
+
+        // Calcular percentual presencial
+        const presentialPercent = totalRecords > 0 ? Math.round((presentialDays / totalRecords) * 100) : 0;
 
         return {
             totalRecords,
             totalHours: Utils.minutesToTime(totalMinutes),
             totalExtra: Utils.minutesToTime(totalExtraMinutes),
-            totalValue: totalValue
+            totalValue: totalValue,
+            presentialDays: presentialDays,
+            minPresentialDays: MIN_PRESENTIAL_DAYS,
+            presentialPercent: presentialPercent,
+            minPresentialPercent: MIN_PRESENTIAL_PERCENT,
+            presentialTarget: `${presentialDays}/${MIN_PRESENTIAL_DAYS}`
         };
     }
 
@@ -174,7 +193,8 @@ class StorageManager {
             'Horas Normais',
             'Horas Extras',
             'Valor HE (50%)',
-            'Turno/Observação'
+            'Turno/Observação',
+            'Status SAP'
         ];
 
         const csvContent = [
@@ -192,7 +212,8 @@ class StorageManager {
                 record.horasNormais || '',
                 record.horasExtras || '',
                 record.valorHE || '',
-                `"${record.observacao || ''}"` // Aspas para textos com vírgulas
+                `"${record.observacao || ''}"`, // Aspas para textos com vírgulas
+                Utils.statusText(record.status) || ''
             ].join(','))
         ].join('\n');
 

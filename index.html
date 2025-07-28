@@ -65,6 +65,20 @@
                                 <p>Valor HE Acumulado</p>
                             </div>
                         </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🏢</div>
+                            <div class="stat-content">
+                                <h3 id="presentialDays">0/8</h3>
+                                <p>Dias Presenciais</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-content">
+                                <h3 id="presentialPercent">0%</h3>
+                                <p>% Presencial (40% min)</p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -111,9 +125,28 @@
                                     <label for="valorHora">Valor/Hora (R$)</label>
                                     <input type="number" id="valorHora" step="0.01" min="0" placeholder="30.00">
                                 </div>
-                                <div class="form-group form-group-full">
+                                <div class="form-group">
                                     <label for="observacao">Turno/Observação</label>
-                                    <input type="text" id="observacao" placeholder="Ex: Horário Comercial, Extra Noturno...">
+                                    <select id="observacao">
+                                        <option value="">Selecione o turno</option>
+                                        <option value="Horário Comercial">Horário Comercial</option>
+                                        <option value="Extra Noturno">Extra Noturno</option>
+                                        <option value="Plantão">Plantão</option>
+                                        <option value="Home Office">Home Office</option>
+                                        <option value="Sobreaviso">Sobreaviso</option>
+                                        <option value="Feriado">Feriado</option>
+                                        <option value="Final de Semana">Final de Semana</option>
+                                        <option value="Emergência">Emergência</option>
+                                    </select>
+                                </div>
+                                <div class="form-group form-group-full">
+                                    <label for="status">SAP</label>
+                                    <select type="text" id="status" required>
+                                        <option value="">Selecione</option>
+                                        <option value="pendente">Pendente</option>
+                                        <option value="concluido">Concluído</option>
+                                        <option value="presencial">Presencial</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-actions">
@@ -168,9 +201,24 @@
                                 <input type="text" id="searchInput" placeholder="Buscar registros..." class="search-input">
                                 <select id="filterSelect" class="filter-select">
                                     <option value="">Todos os turnos</option>
-                                    <option value="comercial">Horário Comercial</option>
-                                    <option value="noturno">Extra Noturno</option>
-                                    <option value="plantao">Plantão</option>
+                                    <option value="Horário Comercial">Horário Comercial</option>
+                                    <option value="Extra Noturno">Extra Noturno</option>
+                                    <option value="Plantão">Plantão</option>
+                                    <option value="Home Office">Home Office</option>
+                                    <option value="Sobreaviso">Sobreaviso</option>
+                                    <option value="Feriado">Feriado</option>
+                                    <option value="Final de Semana">Final de Semana</option>
+                                    <option value="Emergência">Emergência</option>
+                                </select>
+                                <select id="filterSelectStatus" class="filter-select">
+                                    <option value="">Todos os status SAP</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="concluido">Concluído</option>
+                                    <option value="presencial">Presencial</option>
+                                </select>
+                                <select id="filterSelectUser" class="filter-select">
+                                    <option value="">Todos os usuários</option>
+                                    <!-- Será preenchido via JavaScript -->
                                 </select>
                             </div>
                         </div>
@@ -187,6 +235,7 @@
                                         <th>Horas Extras</th>
                                         <th>Valor HE</th>
                                         <th>Observação</th>
+                                        <th>SAP</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
@@ -233,10 +282,12 @@
 
     <!-- Scripts -->
     <script src="/static/js/utils.js"></script>
+    <script src="/static/js/user-manager.js"></script>
     <script src="/static/js/storage.js"></script>
     <script src="/static/js/calculator.js"></script>
     <script src="/static/js/components.js"></script>
     <script src="/static/js/fix-dates.js"></script>
+    <script src="/static/js/backup-reminder.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

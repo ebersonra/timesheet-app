@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TimesheetPro</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/auth.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏰</text></svg>">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1 class="auth-logo">
+                    <span class="logo-icon">⏰</span>
+                    TimesheetPro
+                </h1>
+                <p class="auth-subtitle">Sistema de Controle de Ponto</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form">
+                <h2>Entrar</h2>
+                <form id="loginFormElement">
+                    <div class="form-group">
+                        <label for="loginEmail">E-mail</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Senha</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        🔑 Entrar
+                    </button>
+                </form>
+                <p class="auth-switch">
+                    Não tem conta? 
+                    <button type="button" id="showRegister" class="btn-link">Cadastre-se</button>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="auth-form" style="display: none;">
+                <h2>Cadastrar</h2>
+                <form id="registerFormElement">
+                    <div class="form-group">
+                        <label for="registerName">Nome Completo</label>
+                        <input type="text" id="registerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">E-mail</label>
+                        <input type="email" id="registerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Senha</label>
+                        <input type="password" id="registerPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerConfirmPassword">Confirmar Senha</label>
+                        <input type="password" id="registerConfirmPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerDepartment">Departamento</label>
+                        <select id="registerDepartment" required>
+                            <option value="">Selecione</option>
+                            <option value="TI">Tecnologia da Informação</option>
+                            <option value="RH">Recursos Humanos</option>
+                            <option value="Financeiro">Financeiro</option>
+                            <option value="Operações">Operações</option>
+                            <option value="Vendas">Vendas</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Suporte">Suporte</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        👤 Cadastrar
+                    </button>
+                </form>
+                <p class="auth-switch">
+                    Já tem conta? 
+                    <button type="button" id="showLogin" class="btn-link">Entrar</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Processando...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/auth.js"></script>
+</body>
+</html>

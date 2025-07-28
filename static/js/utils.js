@@ -317,6 +317,15 @@ class Utils {
         
         return features[feature] ? features[feature]() : false;
     }
+
+    static statusText(status) {
+        const statusMap = {
+            'pendente': 'Pendente',
+            'concluido': 'Concluído',
+            'presencial': 'Presencial'
+        };
+        return statusMap[status] || 'Desconhecido';
+    }
 }
 
 // Exportar para uso global

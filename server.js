@@ -41,17 +41,27 @@ class TimesheetServer {
     setupRoutes() {
         // Rota principal
         this.app.get('/', (req, res) => {
+            res.sendFile(path.join(__dirname, 'login.html'));
+        });
+
+        // Rota para login
+        this.app.get('/login.html', (req, res) => {
+            res.sendFile(path.join(__dirname, 'login.html'));
+        });
+
+        // Rota para aplicação principal
+        this.app.get('/index.html', (req, res) => {
             res.sendFile(path.join(__dirname, 'index.html'));
         });
 
         // API routes
         this.app.get('/api/health', (req, res) => {
-            res.json({ 
-                status: 'OK', 
+            res.json({
+                status: 'OK',
                 timestamp: new Date().toISOString(),
                 version: '1.0.0'
+                });
             });
-        });
 
         // 404 handler
         this.app.use('*', (req, res) => {

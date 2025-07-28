@@ -88,6 +88,7 @@
     gap: var(--spacing-sm);
     align-items: center;
     flex-wrap: wrap;
+    justify-content: space-between;
 }
 
 .search-input,
@@ -101,6 +102,12 @@
 
 .search-input {
     min-width: 200px;
+    flex: 1;
+    max-width: 300px;
+}
+
+.filter-select {
+    min-width: 150px;
 }
 
 .table-container {

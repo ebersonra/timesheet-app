@@ -217,7 +217,9 @@ class UIComponents {
             totalRecords: document.getElementById('totalRecords'),
             totalHours: document.getElementById('totalHours'),
             totalExtra: document.getElementById('totalExtra'),
-            totalValue: document.getElementById('totalValue')
+            totalValue: document.getElementById('totalValue'),
+            presentialDays: document.getElementById('presentialDays'),
+            presentialPercent: document.getElementById('presentialPercent')
         };
 
         if (elements.totalRecords) {
@@ -235,10 +237,38 @@ class UIComponents {
         if (elements.totalValue) {
             elements.totalValue.textContent = Utils.formatCurrency(stats.totalValue || 0);
         }
+
+        if (elements.presentialDays) {
+            elements.presentialDays.textContent = stats.presentialTarget || '0/8';
+        }
+
+        if (elements.presentialPercent) {
+            const percent = stats.presentialPercent || 0;
+            const minPercent = stats.minPresentialPercent || 40;
+            elements.presentialPercent.textContent = `${percent}%`;
+            
+            // Adicionar classe de status baseada no percentual
+            elements.presentialPercent.parentElement.parentElement.classList.remove('stat-card--warning', 'stat-card--success');
+            if (percent >= minPercent) {
+                elements.presentialPercent.parentElement.parentElement.classList.add('stat-card--success');
+            } else if (percent > 0) {
+                elements.presentialPercent.parentElement.parentElement.classList.add('stat-card--warning');
+            }
+        }
+    }
+
+    // Obter classe CSS para badge de status
+    static getStatusBadgeClass(status) {
+        const statusClasses = {
+            'pendente': 'badge-warning',
+            'concluido': 'badge-success',
+            'presencial': 'badge-info'
+        };
+        return statusClasses[status] || 'badge-secondary';
     }
 
     // Renderizar tabela de registros
-    static renderTable(records, searchTerm = '', filterTerm = '') {
+    static renderTable(records, searchTerm = '', filterTerm = '', filterStatusTerm = '', filterUserTerm = '') {
         const tbody = document.querySelector('#timesheetTable tbody');
         if (!tbody) return;
 
@@ -250,9 +280,15 @@ class UIComponents {
                 );
 
             const matchesFilter = !filterTerm || 
-                record.observacao?.toLowerCase().includes(filterTerm.toLowerCase());
+                record.observacao === filterTerm;
 
-            return matchesSearch && matchesFilter;
+            const matchesStatusFilter = !filterStatusTerm || 
+                record.status === filterStatusTerm;
+
+            const matchesUserFilter = !filterUserTerm || 
+                record.userId === filterUserTerm;
+
+            return matchesSearch && matchesFilter && matchesStatusFilter && matchesUserFilter;
         });
 
         // Ordenar por data/hora mais recente primeiro
@@ -279,6 +315,11 @@ class UIComponents {
                 </td>
                 <td data-label="Valor HE">${Utils.formatCurrency(record.valorHE)}</td>
                 <td data-label="Observação">${Utils.sanitizeHtml(record.observacao || '-')}</td>
+                <td data-label="SAP">
+                    <span class="badge ${this.getStatusBadgeClass(record.status)}">
+                        ${Utils.statusText(record.status) || ''}
+                    </span>
+                </td>
                 <td data-label="Ações">
                     <button class="btn btn-danger action-btn delete-btn" data-record-id="${record.id}" title="Excluir registro">
                         🗑️
@@ -357,17 +398,17 @@ class UIComponents {
     static quickFill() {
         const now = new Date();
         const today = now.toISOString().split('T')[0];
-        const currentTime = now.toTimeString().substr(0, 5);
         
         // Horário comercial padrão
         document.getElementById('dataEntrada').value = today;
-        document.getElementById('horaEntrada').value = '08:00';
+        document.getElementById('horaEntrada').value = '08:30';
         document.getElementById('dataSaida').value = today;
-        document.getElementById('horaSaida').value = '17:00';
+        document.getElementById('horaSaida').value = '17:30';
         document.getElementById('inicioAlmoco').value = '12:00';
         document.getElementById('fimAlmoco').value = '13:00';
         document.getElementById('observacao').value = 'Horário Comercial';
-        
+        document.getElementById('status').value = 'pendente';
+
         UIComponents.showToast('Dados preenchidos automaticamente!', 'info');
     }
 

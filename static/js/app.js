@@ -1,6 +1,7 @@
 // Aplicação principal
 class TimesheetApp {
     constructor() {
+        this.userManager = new UserManager();
         this.storage = new StorageManager();
         this.calculator = new TimesheetCalculator();
         this.currentEditId = null;
@@ -11,12 +12,61 @@ class TimesheetApp {
 
     // Inicializar aplicação
     init() {
+        // Verificar autenticação primeiro
+        if (!this.userManager.checkAuth()) {
+            return;
+        }
+
         this.loadRecords();
         this.bindEvents();
         this.updateUI();
+        this.setupUserInterface();
         UIComponents.setTodayDate();
         
+        // Inicializar sistema de lembrete de backup
+        if (window.BackupReminder) {
+            const backupReminder = new BackupReminder();
+            backupReminder.init();
+        }
+        
         console.log('🚀 TimesheetPro inicializado com sucesso!');
+    }
+
+    // Configurar interface do usuário
+    setupUserInterface() {
+        this.userManager.renderUserInfo();
+        this.setupUserFilters();
+    }
+
+    // Configurar filtros de usuário
+    setupUserFilters() {
+        const filterSelectUser = document.getElementById('filterSelectUser');
+        if (!filterSelectUser) return;
+
+        const users = this.userManager.getAllUsers();
+        const currentUser = this.userManager.getCurrentUser();
+        
+        // Limpar opções existentes (exceto a primeira)
+        while (filterSelectUser.children.length > 1) {
+            filterSelectUser.removeChild(filterSelectUser.lastChild);
+        }
+
+        // Adicionar opção "Apenas meus registros" como padrão
+        const myRecordsOption = document.createElement('option');
+        myRecordsOption.value = currentUser.id;
+        myRecordsOption.textContent = 'Apenas meus registros';
+        myRecordsOption.selected = true;
+        filterSelectUser.appendChild(myRecordsOption);
+
+        // Adicionar outros usuários
+        users.forEach(user => {
+            if (user.id !== currentUser.id) {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.name} (${user.department})`;
+                filterSelectUser.appendChild(option);
+            }
+        });
     }
 
     // Carregar registros do localStorage
@@ -59,6 +109,8 @@ class TimesheetApp {
         // Search e filtros
         const searchInput = document.getElementById('searchInput');
         const filterSelect = document.getElementById('filterSelect');
+        const filterSelectStatus = document.getElementById('filterSelectStatus');
+        const filterSelectUser = document.getElementById('filterSelectUser');
         
         const debouncedSearch = UIComponents.createDebouncedSearch(() => {
             this.updateTable();
@@ -66,6 +118,8 @@ class TimesheetApp {
 
         searchInput.addEventListener('input', debouncedSearch);
         filterSelect.addEventListener('change', () => this.updateTable());
+        filterSelectStatus.addEventListener('change', () => this.updateTable());
+        filterSelectUser.addEventListener('change', () => this.updateTable());
 
         // Auto-completar data de saída quando entrada for preenchida
         const dataEntrada = document.getElementById('dataEntrada');
@@ -148,10 +202,10 @@ class TimesheetApp {
             ...formData,
             ...calculation,
             id: this.currentEditId || Utils.generateId(),
-            createdAt: this.currentEditId ? 
-                this.records.find(r => r.id === this.currentEditId)?.createdAt : 
-                new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            userId: this.userManager.getCurrentUser().id,
+            userName: this.userManager.getCurrentUser().name,
+            userDepartment: this.userManager.getCurrentUser().department,
+            createdAt: new Date().toISOString()
         };
 
         if (this.currentEditId) {
@@ -172,7 +226,8 @@ class TimesheetApp {
             fimAlmoco: document.getElementById('fimAlmoco').value,
             horasNormais: document.getElementById('horasNormais').value || '08:00',
             valorHora: document.getElementById('valorHora').value || '0',
-            observacao: document.getElementById('observacao').value
+            observacao: document.getElementById('observacao').value,
+            status: document.getElementById('status').value
         };
     }
 
@@ -187,7 +242,8 @@ class TimesheetApp {
             fimAlmoco: { time: true },
             horasNormais: { required: true, time: true },
             valorHora: { number: true, min: 0 },
-            observacao: {}
+            observacao: {},
+            status: { required: true }
         };
 
         return UIComponents.validateForm(formData, rules);
@@ -305,6 +361,7 @@ class TimesheetApp {
         document.getElementById('horasNormais').value = record.horasNormais || '08:00';
         document.getElementById('valorHora').value = record.valorHora || '';
         document.getElementById('observacao').value = record.observacao || '';
+        document.getElementById('status').value = record.status || '';
     }
 
     // Limpar formulário
@@ -324,7 +381,8 @@ class TimesheetApp {
 
     // Atualizar estatísticas
     updateStats() {
-        const stats = this.storage.getStats();
+        const currentUser = this.userManager.getCurrentUser();
+        const stats = this.storage.getStats(currentUser.id);
         UIComponents.updateStats(stats);
     }
 
@@ -332,8 +390,10 @@ class TimesheetApp {
     updateTable() {
         const searchTerm = document.getElementById('searchInput').value;
         const filterTerm = document.getElementById('filterSelect').value;
+        const filterStatusTerm = document.getElementById('filterSelectStatus').value;
+        const filterUserTerm = document.getElementById('filterSelectUser').value;
         
-        UIComponents.renderTable(this.records, searchTerm, filterTerm);
+        UIComponents.renderTable(this.records, searchTerm, filterTerm, filterStatusTerm, filterUserTerm);
         // Configurar event listeners após renderizar a tabela
         UIComponents.setupTableEventListeners();
     }

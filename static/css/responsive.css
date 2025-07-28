@@ -1,13 +1,30 @@
 /* Responsividade */
 
+/* Desktop grande */
+@media (min-width: 1200px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: none;
+    }
+}
+
+/* Tablets grandes */
+@media (max-width: 1199px) and (min-width: 900px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--spacing-md);
+    }
+}
+
 /* Tablets */
-@media (max-width: 1024px) {
+@media (max-width: 899px) {
     .container {
         padding: 0 var(--spacing-lg);
     }
     
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
     }
     
     .form-grid {
@@ -34,6 +51,18 @@
     .header-actions {
         width: 100%;
         justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .user-info {
+        order: -1;
+        margin-right: 0;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .user-dropdown {
+        right: 50%;
+        transform: translateX(50%);
     }
     
     .stats-grid {
@@ -59,6 +88,14 @@
     .table-actions {
         flex-direction: column;
         align-items: stretch;
+        gap: var(--spacing-sm);
+    }
+    
+    .search-input,
+    .filter-select {
+        width: 100%;
+        max-width: none;
+        min-width: auto;
     }
     
     .search-input {
