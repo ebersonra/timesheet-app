@@ -113,6 +113,16 @@
         align-items: stretch;
     }
     
+    .header-buttons {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .header-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
     .timesheet-table {
         font-size: var(--font-size-xs);
     }
@@ -120,6 +130,17 @@
     .timesheet-table th,
     .timesheet-table td {
         padding: var(--spacing-sm);
+    }
+    
+    /* Otimizar coluna de localização em mobile */
+    .timesheet-table td[data-label="Localização"] {
+        white-space: nowrap;
+        min-width: 120px;
+    }
+    
+    .location-indicator,
+    .network-indicator {
+        font-size: 0.7em;
     }
     
     /* Tornar tabela mais legível em mobile */

@@ -326,6 +326,405 @@ class Utils {
         };
         return statusMap[status] || 'Desconhecido';
     }
+
+    // Detectar tipo de conexão de rede
+    static async detectNetworkConnection() {
+        try {
+            // Usar a API Network Information se disponível
+            if ('connection' in navigator) {
+                const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                
+                if (connection) {
+                    // Verificar o tipo de conexão
+                    const connectionType = connection.type || connection.effectiveType;
+                    
+                    // Tipos que indicam conexão cabeada/ethernet
+                    const wiredTypes = ['ethernet', 'other'];
+                    // Tipos que indicam WiFi
+                    const wifiTypes = ['wifi'];
+                    
+                    if (wiredTypes.includes(connectionType)) {
+                        return {
+                            type: 'wired',
+                            location: 'presencial',
+                            message: 'Conexão cabeada detectada - Modo Presencial'
+                        };
+                    } else if (wifiTypes.includes(connectionType)) {
+                        return {
+                            type: 'wifi',
+                            location: 'home-office',
+                            message: 'Conexão WiFi detectada - Modo Home Office'
+                        };
+                    }
+                }
+            }
+
+            // Fallback: tentar detectar pela velocidade de conexão
+            if ('connection' in navigator) {
+                const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                if (connection && connection.downlink) {
+                    // Conexões cabeadas geralmente têm velocidade maior e mais estável
+                    // Isso é uma heurística aproximada
+                    if (connection.downlink > 50) {
+                        return {
+                            type: 'wired',
+                            location: 'presencial',
+                            message: 'Conexão de alta velocidade detectada - Modo Presencial (provável)'
+                        };
+                    } else {
+                        return {
+                            type: 'wifi',
+                            location: 'home-office',
+                            message: 'Conexão WiFi detectada - Modo Home Office (provável)'
+                        };
+                    }
+                }
+            }
+
+            // Se não conseguir detectar, retornar padrão
+            return {
+                type: 'unknown',
+                location: 'home-office',
+                message: 'Não foi possível detectar o tipo de conexão - Usando padrão Home Office'
+            };
+
+        } catch (error) {
+            console.warn('Erro ao detectar conexão de rede:', error);
+            return {
+                type: 'unknown',
+                location: 'home-office',
+                message: 'Erro na detecção - Usando padrão Home Office'
+            };
+        }
+    }
+
+    // Detectar localização baseada na rede (método alternativo usando IP local)
+    static async detectLocationByIP() {
+        try {
+            // Criar conexão WebRTC para obter IP local
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            return new Promise((resolve) => {
+                pc.createDataChannel('');
+                pc.createOffer().then(offer => pc.setLocalDescription(offer));
+
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const candidate = event.candidate.candidate;
+                        const match = candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+                        
+                        if (match) {
+                            const ip = match[1];
+                            
+                            // IPs típicos de redes corporativas cabeadas
+                            if (ip.startsWith('192.168.1.') || 
+                                ip.startsWith('10.') || 
+                                ip.startsWith('172.')) {
+                                
+                                // Heurística: IPs .1.x geralmente são cabeados em redes corporativas
+                                if (ip.startsWith('192.168.1.')) {
+                                    resolve({
+                                        type: 'wired',
+                                        location: 'presencial',
+                                        message: 'Rede corporativa detectada - Modo Presencial',
+                                        ip: ip
+                                    });
+                                } else {
+                                    resolve({
+                                        type: 'wifi',
+                                        location: 'home-office',
+                                        message: 'Rede doméstica detectada - Modo Home Office',
+                                        ip: ip
+                                    });
+                                }
+                            } else {
+                                resolve({
+                                    type: 'unknown',
+                                    location: 'home-office',
+                                    message: 'Tipo de rede desconhecida - Usando padrão Home Office',
+                                    ip: ip
+                                });
+                            }
+                        }
+                    }
+                };
+
+                // Timeout fallback
+                setTimeout(() => {
+                    resolve({
+                        type: 'unknown',
+                        location: 'home-office',
+                        message: 'Timeout na detecção - Usando padrão Home Office'
+                    });
+                }, 3000);
+
+                pc.close();
+            });
+
+        } catch (error) {
+            console.warn('Erro ao detectar IP local:', error);
+            return {
+                type: 'unknown',
+                location: 'home-office',
+                message: 'Erro na detecção por IP - Usando padrão Home Office'
+            };
+        }
+    }
+
+    // Obter localização geográfica do usuário
+    static async getCurrentLocation() {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve({
+                    success: false,
+                    error: 'Geolocalização não suportada pelo navegador',
+                    latitude: null,
+                    longitude: null,
+                    accuracy: null,
+                    address: 'Localização não disponível'
+                });
+                return;
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 5 minutos de cache
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude, accuracy } = position.coords;
+                    
+                    // Tentar obter endereço através de reverse geocoding
+                    const address = await Utils.reverseGeocode(latitude, longitude);
+                    
+                    resolve({
+                        success: true,
+                        latitude: parseFloat(latitude.toFixed(6)),
+                        longitude: parseFloat(longitude.toFixed(6)),
+                        accuracy: Math.round(accuracy),
+                        timestamp: new Date().toISOString(),
+                        address: address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                        zone: Utils.determineWorkZone(latitude, longitude)
+                    });
+                },
+                (error) => {
+                    let errorMessage = 'Erro desconhecido na geolocalização';
+                    
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Permissão de localização negada pelo usuário';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Informações de localização indisponíveis';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Timeout na obtenção da localização';
+                            break;
+                    }
+                    
+                    resolve({
+                        success: false,
+                        error: errorMessage,
+                        latitude: null,
+                        longitude: null,
+                        accuracy: null,
+                        address: 'Localização não disponível'
+                    });
+                },
+                options
+            );
+        });
+    }
+
+    // Reverse geocoding simples usando Nominatim (OpenStreetMap)
+    static async reverseGeocode(latitude, longitude) {
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+                {
+                    headers: {
+                        'User-Agent': 'TimesheetPro/1.0'
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Erro na resposta do servidor');
+            }
+
+            const data = await response.json();
+            
+            if (data && data.display_name) {
+                // Extrair partes relevantes do endereço
+                const address = data.address || {};
+                const parts = [];
+                
+                if (address.road) parts.push(address.road);
+                if (address.house_number) parts.push(address.house_number);
+                if (address.neighbourhood || address.suburb) {
+                    parts.push(address.neighbourhood || address.suburb);
+                }
+                if (address.city || address.town || address.village) {
+                    parts.push(address.city || address.town || address.village);
+                }
+                if (address.state) parts.push(address.state);
+                
+                return parts.length > 0 ? parts.join(', ') : data.display_name;
+            }
+            
+            return null;
+        } catch (error) {
+            console.warn('Erro no reverse geocoding:', error);
+            return null;
+        }
+    }
+
+    // Determinar zona de trabalho baseada na localização
+    static determineWorkZone(latitude, longitude) {
+        // Configurações de zonas de trabalho (podem ser customizadas)
+        const workZones = {
+            office: {
+                // Exemplo: escritório principal
+                // latitude: -23.5505, longitude: -46.6333, radius: 0.5 // São Paulo
+                enabled: false,
+                latitude: null,
+                longitude: null,
+                radius: 0.5 // raio em km
+            },
+            homeOffice: {
+                // Será definido automaticamente na primeira detecção de home office
+                enabled: false,
+                latitude: null,
+                longitude: null,
+                radius: 0.2 // raio menor para casa
+            }
+        };
+
+        // Verificar se está dentro de alguma zona conhecida
+        for (const [zoneName, zone] of Object.entries(workZones)) {
+            if (zone.enabled && zone.latitude && zone.longitude) {
+                const distance = Utils.calculateDistance(
+                    latitude, longitude,
+                    zone.latitude, zone.longitude
+                );
+                
+                if (distance <= zone.radius) {
+                    return {
+                        type: zoneName,
+                        distance: distance,
+                        message: `Dentro da zona ${zoneName} (${distance.toFixed(2)}km)`
+                    };
+                }
+            }
+        }
+
+        // Não está em zona conhecida
+        return {
+            type: 'unknown',
+            distance: null,
+            message: 'Localização fora das zonas cadastradas'
+        };
+    }
+
+    // Calcular distância entre duas coordenadas (fórmula de Haversine)
+    static calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Raio da Terra em km
+        const dLat = Utils.toRadians(lat2 - lat1);
+        const dLon = Utils.toRadians(lon2 - lon1);
+        
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Utils.toRadians(lat1)) * Math.cos(Utils.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    // Converter graus para radianos
+    static toRadians(degrees) {
+        return degrees * (Math.PI / 180);
+    }
+
+    // Combinar detecção de rede e localização
+    static async getCompleteLocationInfo() {
+        try {
+            // Executar ambas as detecções em paralelo
+            const [networkInfo, locationInfo] = await Promise.all([
+                Utils.detectNetworkConnection(),
+                Utils.getCurrentLocation()
+            ]);
+
+            // Analisar consistência entre rede e localização
+            const analysis = Utils.analyzeLocationConsistency(networkInfo, locationInfo);
+
+            return {
+                network: networkInfo,
+                location: locationInfo,
+                analysis: analysis,
+                timestamp: new Date().toISOString(),
+                confidence: analysis.confidence
+            };
+
+        } catch (error) {
+            console.error('Erro na detecção completa:', error);
+            return {
+                network: { type: 'unknown', location: 'home-office', message: 'Erro na detecção de rede' },
+                location: { success: false, error: error.message, address: 'Localização não disponível' },
+                analysis: { consistent: false, confidence: 'baixa', recommendation: 'home-office' },
+                timestamp: new Date().toISOString(),
+                confidence: 'baixa'
+            };
+        }
+    }
+
+    // Analisar consistência entre rede e localização
+    static analyzeLocationConsistency(networkInfo, locationInfo) {
+        const analysis = {
+            consistent: false,
+            confidence: 'baixa',
+            recommendation: 'home-office',
+            details: []
+        };
+
+        // Se não temos localização, usar apenas rede
+        if (!locationInfo.success) {
+            analysis.recommendation = networkInfo.location;
+            analysis.confidence = 'média';
+            analysis.details.push('Baseado apenas em informações de rede');
+            return analysis;
+        }
+
+        // Se temos localização e rede
+        if (networkInfo.type === 'wired' && locationInfo.zone?.type === 'office') {
+            analysis.consistent = true;
+            analysis.confidence = 'alta';
+            analysis.recommendation = 'presencial';
+            analysis.details.push('Rede cabeada + localização no escritório');
+        } else if (networkInfo.type === 'wifi' && locationInfo.zone?.type === 'homeOffice') {
+            analysis.consistent = true;
+            analysis.confidence = 'alta';
+            analysis.recommendation = 'home-office';
+            analysis.details.push('WiFi + localização em casa');
+        } else if (networkInfo.type === 'wired') {
+            analysis.confidence = 'média';
+            analysis.recommendation = 'presencial';
+            analysis.details.push('Rede cabeada detectada - provável escritório');
+        } else if (networkInfo.type === 'wifi') {
+            analysis.confidence = 'média';
+            analysis.recommendation = 'home-office';
+            analysis.details.push('WiFi detectado - provável home office');
+        } else {
+            analysis.confidence = 'baixa';
+            analysis.recommendation = 'home-office';
+            analysis.details.push('Informações insuficientes para determinação precisa');
+        }
+
+        return analysis;
+    }
 }
 
 // Exportar para uso global

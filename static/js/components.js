@@ -312,13 +312,22 @@ class UIComponents {
                     <span class="badge ${record.horasExtras && record.horasExtras !== '00:00' ? 'badge-warning' : 'badge-secondary'}">
                         ${record.horasExtras}
                     </span>
+                    ${record.modoCLT ? '<span class="badge-clt">CLT</span>' : ''}
                 </td>
-                <td data-label="Valor HE">${Utils.formatCurrency(record.valorHE)}</td>
+                <td data-label="Valor HE">
+                    ${record.modoCLT && record.valorTotalCLT ? 
+                        `${Utils.formatCurrency(record.valorTotalCLT)} <span class="badge-clt">Total CLT</span>` : 
+                        Utils.formatCurrency(record.valorHE)
+                    }
+                </td>
                 <td data-label="Observação">${Utils.sanitizeHtml(record.observacao || '-')}</td>
                 <td data-label="SAP">
                     <span class="badge ${this.getStatusBadgeClass(record.status)}">
                         ${Utils.statusText(record.status) || ''}
                     </span>
+                </td>
+                <td data-label="Localização">
+                    ${this.renderLocationInfo(record.locationInfo)}
                 </td>
                 <td data-label="Ações">
                     <button class="btn btn-danger action-btn delete-btn" data-record-id="${record.id}" title="Excluir registro">
@@ -334,7 +343,7 @@ class UIComponents {
         if (filteredRecords.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <td colspan="12" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                         ${records.length === 0 ? 
                             'Nenhum registro encontrado. Adicione seu primeiro registro!' : 
                             'Nenhum registro corresponde aos filtros aplicados.'}
@@ -395,21 +404,65 @@ class UIComponents {
     }
 
     // Preenchimento rápido de dados
-    static quickFill() {
+    static async quickFill() {
         const now = new Date();
         const today = now.toISOString().split('T')[0];
         
-        // Horário comercial padrão
-        document.getElementById('dataEntrada').value = today;
-        document.getElementById('horaEntrada').value = '08:30';
-        document.getElementById('dataSaida').value = today;
-        document.getElementById('horaSaida').value = '17:30';
-        document.getElementById('inicioAlmoco').value = '12:00';
-        document.getElementById('fimAlmoco').value = '13:00';
-        document.getElementById('observacao').value = 'Horário Comercial';
-        document.getElementById('status').value = 'pendente';
-
-        UIComponents.showToast('Dados preenchidos automaticamente!', 'info');
+        // Mostrar loading enquanto detecta a rede e localização
+        UIComponents.showToast('Detectando rede e localização...', 'info', 3000);
+        
+        try {
+            // Detectar informações completas de localização
+            const completeInfo = await Utils.getCompleteLocationInfo();
+            
+            // Horário comercial padrão
+            document.getElementById('dataEntrada').value = today;
+            document.getElementById('horaEntrada').value = '08:30';
+            document.getElementById('dataSaida').value = today;
+            document.getElementById('horaSaida').value = '17:30';
+            document.getElementById('inicioAlmoco').value = '12:00';
+            document.getElementById('fimAlmoco').value = '13:00';
+            
+            // Definir observação e status baseado na análise completa
+            const observacaoSelect = document.getElementById('observacao');
+            const statusSelect = document.getElementById('status');
+            
+            if (completeInfo.analysis.recommendation === 'presencial') {
+                observacaoSelect.value = 'Horário Comercial';
+                statusSelect.value = 'presencial';
+            } else {
+                observacaoSelect.value = 'Home Office';
+                statusSelect.value = 'pendente';
+            }
+            
+            // Armazenar informações de localização no formulário (para uso posterior)
+            UIComponents.storeLocationData(completeInfo);
+            
+            // Criar mensagem detalhada
+            let message = `${completeInfo.analysis.details.join('. ')} (Confiança: ${completeInfo.confidence})`;
+            
+            if (completeInfo.location.success) {
+                message += ` | Local: ${completeInfo.location.address}`;
+            }
+            
+            // Mostrar mensagem com o resultado da detecção
+            UIComponents.showToast(message, 'success', 6000);
+            
+        } catch (error) {
+            console.warn('Erro na detecção completa:', error);
+            
+            // Fallback para home office em caso de erro
+            document.getElementById('dataEntrada').value = today;
+            document.getElementById('horaEntrada').value = '08:30';
+            document.getElementById('dataSaida').value = today;
+            document.getElementById('horaSaida').value = '17:30';
+            document.getElementById('inicioAlmoco').value = '12:00';
+            document.getElementById('fimAlmoco').value = '13:00';
+            document.getElementById('observacao').value = 'Home Office';
+            document.getElementById('status').value = 'pendente';
+            
+            UIComponents.showToast('Erro na detecção - Usando padrão Home Office', 'warning', 3000);
+        }
     }
 
     // Debounce para search
@@ -447,6 +500,128 @@ class UIComponents {
                 window.app.editRecord(recordId);
             }
         }
+    }
+
+    // Armazenar dados de localização temporariamente
+    static storeLocationData(locationInfo) {
+        // Armazenar no formulário como dados ocultos para uso no salvamento
+        const form = document.getElementById('timesheetForm');
+        
+        // Remover dados anteriores se existirem
+        const existingLocationData = form.querySelector('.location-data');
+        if (existingLocationData) {
+            existingLocationData.remove();
+        }
+        
+        // Criar elemento oculto com os dados de localização
+        const locationDataElement = document.createElement('div');
+        locationDataElement.className = 'location-data';
+        locationDataElement.style.display = 'none';
+        locationDataElement.setAttribute('data-location-info', JSON.stringify(locationInfo));
+        
+        form.appendChild(locationDataElement);
+    }
+
+    // Recuperar dados de localização armazenados
+    static getStoredLocationData() {
+        const form = document.getElementById('timesheetForm');
+        const locationDataElement = form.querySelector('.location-data');
+        
+        if (locationDataElement) {
+            try {
+                return JSON.parse(locationDataElement.getAttribute('data-location-info'));
+            } catch (error) {
+                console.warn('Erro ao recuperar dados de localização:', error);
+                return null;
+            }
+        }
+        
+        return null;
+    }
+
+    // Limpar dados de localização armazenados
+    static clearStoredLocationData() {
+        const form = document.getElementById('timesheetForm');
+        const locationDataElement = form.querySelector('.location-data');
+        
+        if (locationDataElement) {
+            locationDataElement.remove();
+        }
+    }
+
+    // Renderizar informações de localização para a tabela
+    static renderLocationInfo(locationInfo) {
+        if (!locationInfo) {
+            return '<span class="badge badge-secondary" title="Sem informações de localização">-</span>';
+        }
+
+        const confidence = locationInfo.confidence || 'não-verificada';
+        const analysis = locationInfo.analysis || {};
+        const location = locationInfo.location || {};
+        const network = locationInfo.network || {};
+
+        let html = '';
+        let title = '';
+        let badgeClass = '';
+
+        // Determinar classe do badge baseado na confiança
+        switch (confidence) {
+            case 'alta':
+                badgeClass = 'badge-success';
+                break;
+            case 'média':
+                badgeClass = 'badge-warning';
+                break;
+            case 'baixa':
+                badgeClass = 'badge-secondary';
+                break;
+            default:
+                badgeClass = 'badge-secondary';
+        }
+
+        // Texto principal do badge
+        if (analysis.recommendation === 'presencial') {
+            html = `<span class="badge ${badgeClass}" title="">🏢 Presencial</span>`;
+        } else {
+            html = `<span class="badge ${badgeClass}" title="">🏠 Home Office</span>`;
+        }
+
+        // Construir título com detalhes
+        title += `Confiança: ${confidence}`;
+        
+        if (network.type) {
+            title += `\nRede: ${network.type}`;
+            if (network.ip) {
+                title += ` (${network.ip})`;
+            }
+        }
+
+        if (location.success && location.address) {
+            title += `\nLocal: ${location.address}`;
+            if (location.accuracy) {
+                title += `\nPrecisão: ${location.accuracy}m`;
+            }
+        }
+
+        if (analysis.details && analysis.details.length > 0) {
+            title += `\nDetalhes: ${analysis.details.join('. ')}`;
+        }
+
+        // Adicionar título ao badge
+        html = html.replace('title=""', `title="${title}"`);
+
+        // Adicionar indicadores adicionais
+        if (location.success) {
+            html += ` <span class="location-indicator" title="Localização GPS verificada">📍</span>`;
+        }
+
+        if (network.type === 'wired') {
+            html += ` <span class="network-indicator" title="Conexão cabeada">🔌</span>`;
+        } else if (network.type === 'wifi') {
+            html += ` <span class="network-indicator" title="Conexão WiFi">📶</span>`;
+        }
+
+        return html;
     }
 }
 

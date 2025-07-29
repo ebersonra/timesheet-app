@@ -87,9 +87,14 @@
                     <div class="card">
                         <div class="card-header">
                             <h2>Registrar Ponto</h2>
-                            <button id="quickFillBtn" class="btn btn-secondary">
-                                ⚡ Preenchimento Rápido
-                            </button>
+                            <div class="header-buttons">
+                                <button id="quickFillBtn" class="btn btn-secondary">
+                                    ⚡ Preenchimento Rápido
+                                </button>
+                                <button id="detectLocationBtn" class="btn btn-outline" title="Detectar localização por rede">
+                                    🌐 Detectar Local
+                                </button>
+                            </div>
                         </div>
                         <form id="timesheetForm" class="timesheet-form">
                             <div class="form-grid">
@@ -148,6 +153,16 @@
                                         <option value="presencial">Presencial</option>
                                     </select>
                                 </div>
+                                <div class="form-group form-group-full">
+                                    <div class="clt-config">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="modoCLT">
+                                            <span class="checkmark"></span>
+                                            Aplicar Regras CLT
+                                        </label>
+                                        <small class="help-text">Ativa cálculos conforme legislação trabalhista (adicional noturno 20%, limite HE 2h/dia)</small>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-actions">
                                 <button type="button" id="calculateBtn" class="btn btn-secondary">
@@ -185,9 +200,31 @@
                                 <span id="resultHorasExtras">-</span>
                             </div>
                             <div class="result-item">
-                                <label>Valor HE (50%):</label>
+                                <label>Valor HE:</label>
                                 <span id="resultValorHE">-</span>
                             </div>
+                            <!-- Campos CLT -->
+                            <div class="result-item clt-result" style="display: none;">
+                                <label>Horas Noturnas:</label>
+                                <span id="resultHorasNoturnas">-</span>
+                            </div>
+                            <div class="result-item clt-result" style="display: none;">
+                                <label>Adicional Noturno (20%):</label>
+                                <span id="resultAdicionalNoturno">-</span>
+                            </div>
+                            <div class="result-item clt-result" style="display: none;">
+                                <label>Valor Total CLT:</label>
+                                <span id="resultValorTotalCLT">-</span>
+                            </div>
+                            <div class="result-item clt-result" style="display: none;">
+                                <label>Status CLT:</label>
+                                <span id="resultStatusCLT">-</span>
+                            </div>
+                        </div>
+                        <!-- Seção de Avisos CLT -->
+                        <div id="cltWarnings" class="clt-warnings" style="display: none;">
+                            <h4>⚠️ Avisos CLT</h4>
+                            <ul id="cltWarningsList"></ul>
                         </div>
                     </div>
                 </section>
@@ -236,6 +273,7 @@
                                         <th>Valor HE</th>
                                         <th>Observação</th>
                                         <th>SAP</th>
+                                        <th>Localização</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
@@ -285,9 +323,11 @@
     <script src="/static/js/user-manager.js"></script>
     <script src="/static/js/storage.js"></script>
     <script src="/static/js/calculator.js"></script>
+    <script src="/static/js/calculator-clt.js"></script>
     <script src="/static/js/components.js"></script>
     <script src="/static/js/fix-dates.js"></script>
     <script src="/static/js/backup-reminder.js"></script>
     <script src="/static/js/app.js"></script>
+    <script src="/static/js/test-functions.js"></script>
 </body>
 </html>

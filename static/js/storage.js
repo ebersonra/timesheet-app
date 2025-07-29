@@ -192,9 +192,16 @@ class StorageManager {
             'Total Líquido',
             'Horas Normais',
             'Horas Extras',
-            'Valor HE (50%)',
+            'Valor HE',
+            'Modo CLT',
+            'Horas Noturnas',
+            'Adicional Noturno',
+            'Valor Total CLT',
+            'Status CLT',
             'Turno/Observação',
-            'Status SAP'
+            'Status SAP',
+            'Usuário',
+            'Departamento'
         ];
 
         const csvContent = [
@@ -211,9 +218,17 @@ class StorageManager {
                 record.totalLiquido || '',
                 record.horasNormais || '',
                 record.horasExtras || '',
-                record.valorHE || '',
+                record.modoCLT ? (record.valorTotalCLT || '') : (record.valorHE || ''),
+                record.modoCLT ? 'Sim' : 'Não',
+                record.horasNoturnas || '',
+                record.valorAdicionalNoturno || '',
+                record.valorTotalCLT || '',
+                record.modoCLT && record.validacoesCLT ? 
+                    (record.validacoesCLT.conforme ? 'Conforme' : 'Com Avisos') : '',
                 `"${record.observacao || ''}"`, // Aspas para textos com vírgulas
-                Utils.statusText(record.status) || ''
+                Utils.statusText(record.status) || '',
+                `"${record.userName || ''}"`,
+                `"${record.userDepartment || ''}"`
             ].join(','))
         ].join('\n');
 

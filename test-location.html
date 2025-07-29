@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Detecção de Localização</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .success { border-left-color: #28a745; background-color: #d4edda; }
+        .warning { border-left-color: #ffc107; background-color: #fff3cd; }
+        .error { border-left-color: #dc3545; background-color: #f8d7da; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Teste - Detecção de Localização</h1>
+        <p>Esta página testa as funcionalidades de detecção de rede e geolocalização implementadas no sistema de timesheet.</p>
+        
+        <div>
+            <button onclick="testNetworkDetection()">🌐 Testar Detecção de Rede</button>
+            <button onclick="testLocationDetection()">📍 Testar Geolocalização</button>
+            <button onclick="testCompleteDetection()">🔍 Teste Completo</button>
+            <button onclick="clearResults()">🗑️ Limpar Resultados</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Carregar scripts do sistema principal
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Carregar dependências
+        Promise.all([
+            loadScript('/static/js/utils.js')
+        ]).then(() => {
+            addResult('✅ Scripts carregados com sucesso', 'success');
+        }).catch(() => {
+            addResult('❌ Erro ao carregar scripts', 'error');
+        });
+
+        function addResult(message, type = '') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testNetworkDetection() {
+            addResult('🔄 Testando detecção de rede...', 'warning');
+            
+            try {
+                if (typeof Utils === 'undefined') {
+                    throw new Error('Utils não está carregado');
+                }
+
+                const networkInfo = await Utils.detectNetworkConnection();
+                
+                addResult(`
+                    <strong>📊 Resultado da Detecção de Rede:</strong><br>
+                    <pre>${JSON.stringify(networkInfo, null, 2)}</pre>
+                `, 'success');
+
+            } catch (error) {
+                addResult(`❌ Erro na detecção de rede: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLocationDetection() {
+            addResult('🔄 Testando geolocalização (pode solicitar permissão)...', 'warning');
+            
+            try {
+                if (typeof Utils === 'undefined') {
+                    throw new Error('Utils não está carregado');
+                }
+
+                const locationInfo = await Utils.getCurrentLocation();
+                
+                addResult(`
+                    <strong>📍 Resultado da Geolocalização:</strong><br>
+                    <pre>${JSON.stringify(locationInfo, null, 2)}</pre>
+                `, locationInfo.success ? 'success' : 'warning');
+
+            } catch (error) {
+                addResult(`❌ Erro na geolocalização: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCompleteDetection() {
+            addResult('🔄 Executando teste completo...', 'warning');
+            
+            try {
+                if (typeof Utils === 'undefined') {
+                    throw new Error('Utils não está carregado');
+                }
+
+                const completeInfo = await Utils.getCompleteLocationInfo();
+                
+                let resultClass = 'success';
+                if (completeInfo.confidence === 'baixa') {
+                    resultClass = 'warning';
+                }
+
+                addResult(`
+                    <strong>🎯 Resultado da Análise Completa:</strong><br>
+                    <strong>Recomendação:</strong> ${completeInfo.analysis.recommendation}<br>
+                    <strong>Confiança:</strong> ${completeInfo.confidence}<br>
+                    <strong>Detalhes:</strong> ${completeInfo.analysis.details.join('. ')}<br>
+                    <br>
+                    <details>
+                        <summary>📋 Dados Completos (clique para expandir)</summary>
+                        <pre>${JSON.stringify(completeInfo, null, 2)}</pre>
+                    </details>
+                `, resultClass);
+
+            } catch (error) {
+                addResult(`❌ Erro no teste completo: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

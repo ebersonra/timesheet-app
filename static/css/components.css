@@ -386,3 +386,120 @@
     border-color: var(--success-color);
     box-shadow: 0 0 0 3px rgb(16 185 129 / 0.1);
 }
+
+/* Configurações CLT */
+.clt-config {
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--primary-color);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.checkbox-label input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    position: relative;
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.checkbox-label input[type="checkbox"]:checked {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.checkbox-label input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.help-text {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    margin-top: var(--spacing-xs);
+    display: block;
+}
+
+/* Resultados CLT */
+.clt-result {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm);
+}
+
+.clt-result label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Avisos CLT */
+.clt-warnings {
+    background: linear-gradient(135deg, #fef3cd, #fde68a);
+    border: 1px solid var(--warning-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.clt-warnings h4 {
+    color: #d97706;
+    margin: 0 0 var(--spacing-sm) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.clt-warnings ul {
+    margin: 0;
+    padding-left: var(--spacing-lg);
+    color: #92400e;
+}
+
+.clt-warnings li {
+    margin-bottom: var(--spacing-xs);
+}
+
+/* Status CLT */
+.status-clt-conforme {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.status-clt-aviso {
+    color: var(--warning-color);
+    font-weight: 600;
+}
+
+.status-clt-erro {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+/* Badge CLT */
+.badge-clt {
+    background: linear-gradient(135deg, var(--primary-color), #1e40af);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: var(--spacing-xs);
+}

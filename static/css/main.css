@@ -331,6 +331,12 @@ body {
     color: var(--text-primary);
 }
 
+.header-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
 /* Botões */
 .btn {
     display: inline-flex;
@@ -456,6 +462,37 @@ body {
 
 .slide-in {
     animation: slideIn 0.3s ease-out;
+}
+
+/* Indicadores de localização */
+.location-indicator,
+.network-indicator {
+    font-size: 0.8em;
+    margin-left: 2px;
+    opacity: 0.8;
+}
+
+.location-indicator:hover,
+.network-indicator:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+/* Badges específicos */
+.badge-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.badge-warning {
+    background-color: #d97706;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: var(--text-secondary);
+    color: white;
 }
 
 .pulse {

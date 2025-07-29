@@ -98,6 +98,10 @@ class TimesheetApp {
         const quickFillBtn = document.getElementById('quickFillBtn');
         quickFillBtn.addEventListener('click', () => UIComponents.quickFill());
 
+        // Botão detectar localização
+        const detectLocationBtn = document.getElementById('detectLocationBtn');
+        detectLocationBtn.addEventListener('click', () => this.detectLocationManually());
+
         // Botão exportar CSV
         const exportBtn = document.getElementById('exportBtn');
         exportBtn.addEventListener('click', () => this.exportToCSV());
@@ -129,6 +133,14 @@ class TimesheetApp {
                 dataSaida.value = e.target.value;
             }
         });
+
+        // Evento para checkbox CLT
+        const modoCLT = document.getElementById('modoCLT');
+        if (modoCLT) {
+            modoCLT.addEventListener('change', (e) => {
+                this.toggleCLTMode(e.target.checked);
+            });
+        }
 
         // Validação em tempo real
         this.setupRealTimeValidation();
@@ -191,21 +203,80 @@ class TimesheetApp {
 
         UIComponents.clearFormErrors();
         
-        const calculation = this.calculator.calculateAll(formData);
+        const modoCLT = document.getElementById('modoCLT').checked;
+        let calculation;
+        let cltData = {};
         
-        if (!calculation.isValid) {
-            UIComponents.showToast('Erro nos cálculos. Verifique os dados informados', 'error');
-            return;
+        if (modoCLT && window.CLTCalculator) {
+            // Usar calculadora CLT
+            const cltCalculator = new CLTCalculator();
+            const isDomingoFeriado = this.isDomingoOuFeriado(formData.dataEntrada);
+            
+            const cltResult = cltCalculator.calcularValorTotal({
+                entrada: formData.horaEntrada,
+                saida: formData.horaSaida,
+                inicioAlmoco: formData.inicioAlmoco,
+                fimAlmoco: formData.fimAlmoco,
+                salarioHora: parseFloat(formData.valorHora) || 0,
+                isDomingoFeriado
+            });
+            
+            if (cltResult.erro) {
+                UIComponents.showToast(cltResult.mensagem, 'error');
+                return;
+            }
+            
+            // Mapear resultados CLT para formato compatível
+            calculation = {
+                totalBruto: '-',
+                tempoAlmoco: '-',
+                totalLiquido: cltResult.totalHoras,
+                horasExtras: cltResult.horasExtras,
+                valorHE: cltResult.valorHorasExtras,
+                isValid: true
+            };
+            
+            // Dados específicos CLT
+            cltData = {
+                modoCLT: true,
+                horasNoturnas: cltResult.horasNoturnas,
+                valorAdicionalNoturno: cltResult.valorAdicionalNoturno,
+                valorTotalCLT: cltResult.valorTotal,
+                percentualHE: cltResult.percentualHE,
+                percentualNoturno: cltResult.percentualNoturno,
+                isDomingoFeriado,
+                validacoesCLT: cltResult.validacoes
+            };
+        } else {
+            // Usar calculadora padrão
+            calculation = this.calculator.calculateAll(formData);
+            
+            if (!calculation.isValid) {
+                UIComponents.showToast('Erro nos cálculos. Verifique os dados informados', 'error');
+                return;
+            }
         }
+
+        // Obter dados de localização armazenados
+        const locationData = UIComponents.getStoredLocationData() || {};
 
         const record = {
             ...formData,
             ...calculation,
+            ...cltData,
             id: this.currentEditId || Utils.generateId(),
             userId: this.userManager.getCurrentUser().id,
             userName: this.userManager.getCurrentUser().name,
             userDepartment: this.userManager.getCurrentUser().department,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            // Dados de localização e rede
+            locationInfo: {
+                network: locationData.network || null,
+                location: locationData.location || null,
+                analysis: locationData.analysis || null,
+                confidence: locationData.confidence || 'não-verificada',
+                timestamp: locationData.timestamp || new Date().toISOString()
+            }
         };
 
         if (this.currentEditId) {
@@ -249,6 +320,28 @@ class TimesheetApp {
         return UIComponents.validateForm(formData, rules);
     }
 
+    // Alternar modo CLT
+    toggleCLTMode(isEnabled) {
+        const helpText = document.querySelector('.help-text');
+        
+        if (isEnabled) {
+            if (helpText) {
+                helpText.innerHTML = '✅ <strong>Modo CLT ativo:</strong> Cálculos conforme legislação trabalhista (adicional noturno 20%, limite HE 2h/dia)';
+                helpText.style.color = 'var(--success-color)';
+            }
+            
+            UIComponents.showToast('Modo CLT ativado - Legislação trabalhista aplicada', 'success', 3000);
+        } else {
+            if (helpText) {
+                helpText.innerHTML = 'Ativa cálculos conforme legislação trabalhista (adicional noturno 20%, limite HE 2h/dia)';
+                helpText.style.color = 'var(--text-secondary)';
+            }
+            
+            // Ocultar resultados CLT se estiverem visíveis
+            this.hideCLTResults();
+        }
+    }
+
     // Calcular timesheet sem salvar
     calculateTimesheet() {
         const formData = this.getFormData();
@@ -264,17 +357,94 @@ class TimesheetApp {
         UIComponents.showLoading('Calculando...');
 
         setTimeout(() => {
-            const calculation = this.calculator.calculateAll(formData);
+            const modoCLT = document.getElementById('modoCLT').checked;
+            let calculation;
             
-            if (calculation.isValid) {
-                this.displayCalculationResults(calculation);
-                UIComponents.showToast('Cálculo realizado com sucesso!', 'success');
+            if (modoCLT && window.CLTCalculator) {
+                // Usar calculadora CLT
+                const cltCalculator = new CLTCalculator();
+                const isDomingoFeriado = this.isDomingoOuFeriado(formData.dataEntrada);
+                
+                calculation = cltCalculator.calcularValorTotal({
+                    entrada: formData.horaEntrada,
+                    saida: formData.horaSaida,
+                    inicioAlmoco: formData.inicioAlmoco,
+                    fimAlmoco: formData.fimAlmoco,
+                    salarioHora: parseFloat(formData.valorHora) || 0,
+                    isDomingoFeriado
+                });
+                
+                if (calculation.erro) {
+                    UIComponents.showToast(calculation.mensagem, 'error');
+                    UIComponents.hideLoading();
+                    return;
+                }
+                
+                this.displayCLTResults(calculation);
             } else {
-                UIComponents.showToast('Erro nos cálculos. Verifique os dados', 'error');
+                // Usar calculadora padrão
+                calculation = this.calculator.calculateAll(formData);
+                
+                if (calculation.isValid) {
+                    this.displayCalculationResults(calculation);
+                } else {
+                    UIComponents.showToast('Erro nos cálculos. Verifique os dados', 'error');
+                    UIComponents.hideLoading();
+                    return;
+                }
             }
             
+            UIComponents.showToast('Cálculo realizado com sucesso!', 'success');
             UIComponents.hideLoading();
         }, 500);
+    }
+
+    // Detectar localização manualmente usando métodos alternativos
+    async detectLocationManually() {
+        UIComponents.showLoading('Detectando localização completa...');
+        
+        try {
+            // Usar detecção completa de localização
+            const completeInfo = await Utils.getCompleteLocationInfo();
+            
+            // Atualizar campos do formulário baseado na análise
+            const observacaoSelect = document.getElementById('observacao');
+            const statusSelect = document.getElementById('status');
+            
+            if (completeInfo.analysis.recommendation === 'presencial') {
+                observacaoSelect.value = 'Horário Comercial';
+                statusSelect.value = 'presencial';
+            } else {
+                observacaoSelect.value = 'Home Office';
+                statusSelect.value = 'pendente';
+            }
+            
+            // Armazenar informações de localização
+            UIComponents.storeLocationData(completeInfo);
+            
+            // Criar mensagem detalhada
+            let detailedMessage = `${completeInfo.analysis.details.join('. ')}`;
+            detailedMessage += `\nConfiança: ${completeInfo.confidence}`;
+            
+            if (completeInfo.network.ip) {
+                detailedMessage += `\nIP: ${completeInfo.network.ip}`;
+            }
+            
+            if (completeInfo.location.success) {
+                detailedMessage += `\nLocal: ${completeInfo.location.address}`;
+                detailedMessage += `\nPrecisão: ${completeInfo.location.accuracy}m`;
+            } else {
+                detailedMessage += `\nLocalização: ${completeInfo.location.error}`;
+            }
+            
+            UIComponents.showToast(detailedMessage, 'success', 8000);
+            
+        } catch (error) {
+            console.error('Erro na detecção manual completa:', error);
+            UIComponents.showToast('Erro na detecção de localização completa', 'error');
+        } finally {
+            UIComponents.hideLoading();
+        }
     }
 
     // Exibir resultados do cálculo
@@ -287,10 +457,128 @@ class TimesheetApp {
         document.getElementById('resultHorasExtras').textContent = calculation.horasExtras;
         document.getElementById('resultValorHE').textContent = Utils.formatCurrency(calculation.valorHE);
         
+        // Ocultar campos CLT
+        this.hideCLTResults();
+        
         resultsSection.style.display = 'block';
         resultsSection.classList.add('fade-in');
         
         UIComponents.scrollToElement('resultsSection', 100);
+    }
+
+    // Exibir resultados do cálculo CLT
+    displayCLTResults(calculation) {
+        const resultsSection = document.getElementById('resultsSection');
+        
+        // Preencher campos básicos
+        document.getElementById('resultTotalBruto').textContent = '-';
+        document.getElementById('resultTempoAlmoco').textContent = '-';
+        document.getElementById('resultTotalLiquido').textContent = calculation.totalHoras;
+        document.getElementById('resultHorasExtras').textContent = calculation.horasExtras;
+        document.getElementById('resultValorHE').textContent = Utils.formatCurrency(calculation.valorHorasExtras);
+        
+        // Preencher campos CLT específicos
+        document.getElementById('resultHorasNoturnas').textContent = calculation.horasNoturnas || '00:00';
+        document.getElementById('resultAdicionalNoturno').textContent = Utils.formatCurrency(calculation.valorAdicionalNoturno);
+        document.getElementById('resultValorTotalCLT').textContent = Utils.formatCurrency(calculation.valorTotal);
+        
+        // Status CLT
+        const statusElement = document.getElementById('resultStatusCLT');
+        if (calculation.validacoes && calculation.validacoes.conforme) {
+            statusElement.textContent = '✅ Conforme CLT';
+            statusElement.className = 'status-clt-conforme';
+        } else {
+            statusElement.textContent = '⚠️ Com Avisos';
+            statusElement.className = 'status-clt-aviso';
+        }
+        
+        // Mostrar campos CLT
+        this.showCLTResults();
+        
+        // Exibir avisos se houver
+        this.displayCLTWarnings(calculation.validacoes);
+        
+        resultsSection.style.display = 'block';
+        resultsSection.classList.add('fade-in');
+        
+        UIComponents.scrollToElement('resultsSection', 100);
+    }
+
+    // Mostrar campos específicos CLT
+    showCLTResults() {
+        const cltResults = document.querySelectorAll('.clt-result');
+        cltResults.forEach(element => {
+            element.style.display = 'flex';
+        });
+    }
+
+    // Ocultar campos específicos CLT
+    hideCLTResults() {
+        const cltResults = document.querySelectorAll('.clt-result');
+        cltResults.forEach(element => {
+            element.style.display = 'none';
+        });
+        
+        // Ocultar avisos também
+        const warningsSection = document.getElementById('cltWarnings');
+        if (warningsSection) {
+            warningsSection.style.display = 'none';
+        }
+    }
+
+    // Exibir avisos CLT
+    displayCLTWarnings(validacoes) {
+        const warningsSection = document.getElementById('cltWarnings');
+        const warningsList = document.getElementById('cltWarningsList');
+        
+        if (!validacoes || (!validacoes.avisos.length && !validacoes.erros.length)) {
+            warningsSection.style.display = 'none';
+            return;
+        }
+        
+        // Limpar lista anterior
+        warningsList.innerHTML = '';
+        
+        // Adicionar erros
+        validacoes.erros.forEach(erro => {
+            const li = document.createElement('li');
+            li.innerHTML = `❌ <strong>Erro:</strong> ${erro}`;
+            li.style.color = 'var(--danger-color)';
+            warningsList.appendChild(li);
+        });
+        
+        // Adicionar avisos
+        validacoes.avisos.forEach(aviso => {
+            const li = document.createElement('li');
+            li.innerHTML = `⚠️ <strong>Aviso:</strong> ${aviso}`;
+            li.style.color = '#d97706';
+            warningsList.appendChild(li);
+        });
+        
+        warningsSection.style.display = 'block';
+    }
+
+    // Verificar se é domingo ou feriado
+    isDomingoOuFeriado(data) {
+        const dataObj = new Date(data);
+        const isDomingo = dataObj.getDay() === 0;
+        
+        // Lista básica de feriados nacionais (pode ser expandida)
+        const feriados = [
+            '2025-01-01', // Confraternização Universal
+            '2025-04-21', // Tiradentes
+            '2025-05-01', // Dia do Trabalhador
+            '2025-09-07', // Independência do Brasil
+            '2025-10-12', // Nossa Senhora Aparecida
+            '2025-11-02', // Finados
+            '2025-11-15', // Proclamação da República
+            '2025-12-25'  // Natal
+        ];
+        
+        const dataFormatada = dataObj.toISOString().split('T')[0];
+        const isFeriado = feriados.includes(dataFormatada);
+        
+        return isDomingo || isFeriado;
     }
 
     // Adicionar novo registro
@@ -370,6 +658,7 @@ class TimesheetApp {
         document.getElementById('resultsSection').style.display = 'none';
         this.currentEditId = null;
         UIComponents.clearFormErrors();
+        UIComponents.clearStoredLocationData(); // Limpar dados de localização
         UIComponents.setTodayDate();
     }
 
