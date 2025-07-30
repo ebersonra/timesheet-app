@@ -268,7 +268,7 @@ class UIComponents {
     }
 
     // Renderizar tabela de registros
-    static renderTable(records, searchTerm = '', filterTerm = '', filterStatusTerm = '', filterUserTerm = '') {
+    static renderTable(records, searchTerm = '', filterTerm = '', filterStatusTerm = '', filterUserTerm = '', filterMonthTerm = '') {
         const tbody = document.querySelector('#timesheetTable tbody');
         if (!tbody) return;
 
@@ -288,7 +288,14 @@ class UIComponents {
             const matchesUserFilter = !filterUserTerm || 
                 record.userId === filterUserTerm;
 
-            return matchesSearch && matchesFilter && matchesStatusFilter && matchesUserFilter;
+            const matchesMonthFilter = !filterMonthTerm || (() => {
+                if (!record.dataEntrada) return false;
+                const date = new Date(record.dataEntrada);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                return monthKey === filterMonthTerm;
+            })();
+
+            return matchesSearch && matchesFilter && matchesStatusFilter && matchesUserFilter && matchesMonthFilter;
         });
 
         // Ordenar por data/hora mais recente primeiro
@@ -298,8 +305,27 @@ class UIComponents {
             return dateB - dateA;
         });
 
+        // Configurar paginação
+        const recordsPerPage = 5;
+        const totalRecords = filteredRecords.length;
+        const totalPages = Math.ceil(totalRecords / recordsPerPage);
+        
+        // Obter página atual ou definir como 1
+        let currentPage = window.currentTablePage || 1;
+        
+        // Verificar se a página atual é válida
+        if (currentPage > totalPages) currentPage = 1;
+        if (currentPage < 1) currentPage = 1;
+        
+        window.currentTablePage = currentPage;
+
+        // Calcular registros para a página atual
+        const startIndex = (currentPage - 1) * recordsPerPage;
+        const endIndex = startIndex + recordsPerPage;
+        const recordsForPage = filteredRecords.slice(startIndex, endIndex);
+
         // Renderizar linhas
-        tbody.innerHTML = filteredRecords.map(record => `
+        tbody.innerHTML = recordsForPage.map(record => `
             <tr data-id="${record.id}">
                 <td data-label="Data Entrada">${Utils.formatDate(record.dataEntrada)}</td>
                 <td data-label="Hora Entrada">${record.horaEntrada}</td>
@@ -351,6 +377,164 @@ class UIComponents {
                 </tr>
             `;
         }
+
+        // Renderizar controles de paginação
+        this.renderPagination(currentPage, totalPages, totalRecords, startIndex + 1, Math.min(endIndex, totalRecords));
+    }
+
+    // Renderizar controles de paginação
+    static renderPagination(currentPage, totalPages, totalRecords, startRecord, endRecord) {
+        const paginationContainer = document.getElementById('paginationContainer');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const pageNumbers = document.getElementById('pageNumbers');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+
+        if (!paginationContainer) return;
+
+        // Ocultar paginação se não há registros ou apenas uma página
+        if (totalRecords === 0 || totalPages <= 1) {
+            paginationContainer.style.display = 'none';
+            return;
+        }
+
+        // Mostrar container de paginação
+        paginationContainer.style.display = 'flex';
+
+        // Atualizar informações
+        paginationInfo.textContent = `Mostrando ${startRecord}-${endRecord} de ${totalRecords} registros`;
+
+        // Configurar botões anterior/próxima
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages;
+
+        // Gerar números das páginas
+        pageNumbers.innerHTML = this.generatePageNumbers(currentPage, totalPages);
+
+        // Configurar event listeners
+        this.setupPaginationEvents();
+    }
+
+    // Gerar números das páginas
+    static generatePageNumbers(currentPage, totalPages) {
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        // Ajustar se não temos páginas suficientes no final
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        let pagesHtml = '';
+
+        // Primeira página + reticências se necessário
+        if (startPage > 1) {
+            pagesHtml += `<div class="page-number" data-page="1">1</div>`;
+            if (startPage > 2) {
+                pagesHtml += `<div class="page-ellipsis">...</div>`;
+            }
+        }
+
+        // Páginas visíveis
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === currentPage ? 'active' : '';
+            pagesHtml += `<div class="page-number ${activeClass}" data-page="${i}">${i}</div>`;
+        }
+
+        // Reticências + última página se necessário
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                pagesHtml += `<div class="page-ellipsis">...</div>`;
+            }
+            pagesHtml += `<div class="page-number" data-page="${totalPages}">${totalPages}</div>`;
+        }
+
+        return pagesHtml;
+    }
+
+    // Configurar event listeners da paginação
+    static setupPaginationEvents() {
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const pageNumbers = document.getElementById('pageNumbers');
+
+        // Remover listeners anteriores
+        prevPageBtn.replaceWith(prevPageBtn.cloneNode(true));
+        nextPageBtn.replaceWith(nextPageBtn.cloneNode(true));
+
+        // Obter referências atualizadas
+        const newPrevBtn = document.getElementById('prevPageBtn');
+        const newNextBtn = document.getElementById('nextPageBtn');
+
+        // Botão anterior
+        newPrevBtn.addEventListener('click', () => {
+            if (window.currentTablePage > 1) {
+                window.currentTablePage--;
+                if (window.app) {
+                    window.app.updateTable();
+                }
+            }
+        });
+
+        // Botão próxima
+        newNextBtn.addEventListener('click', () => {
+            // Calcular total de páginas baseado nos registros filtrados
+            const searchTerm = document.getElementById('searchInput').value;
+            const filterTerm = document.getElementById('filterSelect').value;
+            const filterStatusTerm = document.getElementById('filterSelectStatus').value;
+            const filterUserTerm = document.getElementById('filterSelectUser').value;
+            const filterMonthTerm = document.getElementById('filterSelectMonth').value;
+            
+            let filteredRecords = window.app.records;
+            if (searchTerm || filterTerm || filterStatusTerm || filterUserTerm || filterMonthTerm) {
+                filteredRecords = window.app.records.filter(record => {
+                    const matchesSearch = !searchTerm || 
+                        Object.values(record).some(value => 
+                            String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                        );
+
+                    const matchesFilter = !filterTerm || 
+                        record.observacao === filterTerm;
+
+                    const matchesStatusFilter = !filterStatusTerm || 
+                        record.status === filterStatusTerm;
+
+                    const matchesUserFilter = !filterUserTerm || 
+                        record.userId === filterUserTerm;
+
+                    const matchesMonthFilter = !filterMonthTerm || (() => {
+                        if (!record.dataEntrada) return false;
+                        const date = new Date(record.dataEntrada);
+                        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        return monthKey === filterMonthTerm;
+                    })();
+
+                    return matchesSearch && matchesFilter && matchesStatusFilter && matchesUserFilter && matchesMonthFilter;
+                });
+            }
+            
+            const totalPages = Math.ceil(filteredRecords.length / 5);
+            if (window.currentTablePage < totalPages) {
+                window.currentTablePage++;
+                if (window.app) {
+                    window.app.updateTable();
+                }
+            }
+        });
+
+        // Números das páginas
+        pageNumbers.addEventListener('click', (e) => {
+            if (e.target.classList.contains('page-number') && !e.target.classList.contains('active')) {
+                const page = parseInt(e.target.dataset.page);
+                if (page) {
+                    window.currentTablePage = page;
+                    if (window.app) {
+                        window.app.updateTable();
+                    }
+                }
+            }
+        });
     }
 
     // Animar elemento

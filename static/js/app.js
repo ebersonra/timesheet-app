@@ -17,6 +17,9 @@ class TimesheetApp {
             return;
         }
 
+        // Inicializar paginação
+        window.currentTablePage = 1;
+
         this.loadRecords();
         this.bindEvents();
         this.updateUI();
@@ -36,6 +39,7 @@ class TimesheetApp {
     setupUserInterface() {
         this.userManager.renderUserInfo();
         this.setupUserFilters();
+        this.setupMonthFilter();
     }
 
     // Configurar filtros de usuário
@@ -66,6 +70,41 @@ class TimesheetApp {
                 option.textContent = `${user.name} (${user.department})`;
                 filterSelectUser.appendChild(option);
             }
+        });
+    }
+
+    // Configurar filtro de meses
+    setupMonthFilter() {
+        const filterSelectMonth = document.getElementById('filterSelectMonth');
+        if (!filterSelectMonth) return;
+
+        // Limpar opções existentes (exceto a primeira)
+        while (filterSelectMonth.children.length > 1) {
+            filterSelectMonth.removeChild(filterSelectMonth.lastChild);
+        }
+
+        // Obter meses únicos dos registros
+        const months = new Set();
+        this.records.forEach(record => {
+            if (record.dataEntrada) {
+                const date = new Date(record.dataEntrada);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const monthLabel = date.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' });
+                months.add(JSON.stringify({ key: monthKey, label: monthLabel }));
+            }
+        });
+
+        // Converter Set para array e ordenar
+        const monthsArray = Array.from(months)
+            .map(item => JSON.parse(item))
+            .sort((a, b) => b.key.localeCompare(a.key)); // Mais recente primeiro
+
+        // Adicionar opções ao select
+        monthsArray.forEach(month => {
+            const option = document.createElement('option');
+            option.value = month.key;
+            option.textContent = month.label.charAt(0).toUpperCase() + month.label.slice(1);
+            filterSelectMonth.appendChild(option);
         });
     }
 
@@ -115,6 +154,7 @@ class TimesheetApp {
         const filterSelect = document.getElementById('filterSelect');
         const filterSelectStatus = document.getElementById('filterSelectStatus');
         const filterSelectUser = document.getElementById('filterSelectUser');
+        const filterSelectMonth = document.getElementById('filterSelectMonth');
         
         const debouncedSearch = UIComponents.createDebouncedSearch(() => {
             this.updateTable();
@@ -124,6 +164,7 @@ class TimesheetApp {
         filterSelect.addEventListener('change', () => this.updateTable());
         filterSelectStatus.addEventListener('change', () => this.updateTable());
         filterSelectUser.addEventListener('change', () => this.updateTable());
+        filterSelectMonth.addEventListener('change', () => this.updateTable());
 
         // Auto-completar data de saída quando entrada for preenchida
         const dataEntrada = document.getElementById('dataEntrada');
@@ -664,6 +705,7 @@ class TimesheetApp {
 
     // Atualizar interface
     updateUI() {
+        this.setupMonthFilter(); // Atualizar filtro de meses
         this.updateStats();
         this.updateTable();
     }
@@ -681,8 +723,42 @@ class TimesheetApp {
         const filterTerm = document.getElementById('filterSelect').value;
         const filterStatusTerm = document.getElementById('filterSelectStatus').value;
         const filterUserTerm = document.getElementById('filterSelectUser').value;
+        const filterMonthTerm = document.getElementById('filterSelectMonth').value;
         
-        UIComponents.renderTable(this.records, searchTerm, filterTerm, filterStatusTerm, filterUserTerm);
+        // Filtrar registros para calcular total após filtros
+        const filteredRecords = this.records.filter(record => {
+            const matchesSearch = !searchTerm || 
+                Object.values(record).some(value => 
+                    String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+            const matchesFilter = !filterTerm || 
+                record.observacao === filterTerm;
+
+            const matchesStatusFilter = !filterStatusTerm || 
+                record.status === filterStatusTerm;
+
+            const matchesUserFilter = !filterUserTerm || 
+                record.userId === filterUserTerm;
+
+            const matchesMonthFilter = !filterMonthTerm || (() => {
+                if (!record.dataEntrada) return false;
+                const date = new Date(record.dataEntrada);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                return monthKey === filterMonthTerm;
+            })();
+
+            return matchesSearch && matchesFilter && matchesStatusFilter && matchesUserFilter && matchesMonthFilter;
+        });
+
+        // Verificar se a página atual ainda é válida
+        const recordsPerPage = 5;
+        const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+        if (window.currentTablePage > totalPages && totalPages > 0) {
+            window.currentTablePage = 1;
+        }
+        
+        UIComponents.renderTable(this.records, searchTerm, filterTerm, filterStatusTerm, filterUserTerm, filterMonthTerm);
         // Configurar event listeners após renderizar a tabela
         UIComponents.setupTableEventListeners();
     }

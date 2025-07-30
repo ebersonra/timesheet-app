@@ -257,6 +257,10 @@
                                     <option value="">Todos os usuários</option>
                                     <!-- Será preenchido via JavaScript -->
                                 </select>
+                                <select id="filterSelectMonth" class="filter-select">
+                                    <option value="">Todos os meses</option>
+                                    <!-- Será preenchido via JavaScript -->
+                                </select>
                             </div>
                         </div>
                         <div class="table-container">
@@ -281,6 +285,24 @@
                                     <!-- Dados serão inseridos via JavaScript -->
                                 </tbody>
                             </table>
+                        </div>
+                        
+                        <!-- Paginação -->
+                        <div id="paginationContainer" class="pagination-container">
+                            <div class="pagination-info">
+                                <span id="paginationInfo">Mostrando 0 de 0 registros</span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button id="prevPageBtn" class="btn btn-secondary pagination-btn" disabled>
+                                    ⟨ Anterior
+                                </button>
+                                <div id="pageNumbers" class="page-numbers">
+                                    <!-- Números das páginas serão inseridos via JavaScript -->
+                                </div>
+                                <button id="nextPageBtn" class="btn btn-secondary pagination-btn" disabled>
+                                    Próxima ⟩
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>

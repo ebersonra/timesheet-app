@@ -20,8 +20,10 @@ class TimesheetServer {
                 directives: {
                     defaultSrc: ["'self'"],
                     styleSrc: ["'self'", "'unsafe-inline'"],
-                    scriptSrc: ["'self'", "'unsafe-inline'"],
-                    imgSrc: ["'self'", "data:", "https:"]
+                    scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+                    scriptSrcAttr: ["'unsafe-inline'"],
+                    imgSrc: ["'self'", "data:", "https:"],
+                    connectSrc: ["'self'", "https:", "stun:"]
                 }
             }
         }));
@@ -58,14 +60,34 @@ class TimesheetServer {
             res.sendFile(path.join(__dirname, 'index.html'));
         });
 
+        // Rota para página de teste de localização
+        this.app.get('/test-location.html', (req, res) => {
+            res.sendFile(path.join(__dirname, 'test-location.html'));
+        });
+
         // API routes
         this.app.get('/api/health', (req, res) => {
             res.json({
                 status: 'OK',
                 timestamp: new Date().toISOString(),
-                version: '1.0.0'
-                });
+                version: '1.0.0',
+                features: {
+                    networkDetection: true,
+                    geolocation: true,
+                    locationAnalysis: true
+                }
             });
+        });
+
+        // API para testar funcionalidades (apenas para debug)
+        this.app.get('/api/test-info', (req, res) => {
+            res.json({
+                userAgent: req.get('User-Agent'),
+                ip: req.ip || req.connection.remoteAddress,
+                headers: req.headers,
+                timestamp: new Date().toISOString()
+            });
+        });
 
         // 404 handler
         this.app.use('*', (req, res) => {

@@ -47,11 +47,20 @@
         <h1>🧪 Teste - Detecção de Localização</h1>
         <p>Esta página testa as funcionalidades de detecção de rede e geolocalização implementadas no sistema de timesheet.</p>
         
+        <div class="info-box" style="background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #007bff;">
+            <h3>📋 Informações sobre Permissões</h3>
+            <ul>
+                <li><strong>Geolocalização:</strong> O navegador pode solicitar permissão para acessar sua localização</li>
+                <li><strong>Rede:</strong> Informações de rede são detectadas automaticamente</li>
+                <li><strong>Segurança:</strong> Todos os dados são processados localmente, nada é enviado para servidores</li>
+            </ul>
+        </div>
+        
         <div>
-            <button onclick="testNetworkDetection()">🌐 Testar Detecção de Rede</button>
-            <button onclick="testLocationDetection()">📍 Testar Geolocalização</button>
-            <button onclick="testCompleteDetection()">🔍 Teste Completo</button>
-            <button onclick="clearResults()">🗑️ Limpar Resultados</button>
+            <button id="testNetworkBtn">🌐 Testar Detecção de Rede</button>
+            <button id="testLocationBtn">📍 Testar Geolocalização</button>
+            <button id="testCompleteBtn">🔍 Teste Completo</button>
+            <button id="clearResultsBtn">🗑️ Limpar Resultados</button>
         </div>
 
         <div id="results"></div>
@@ -161,6 +170,15 @@
                 addResult(`❌ Erro no teste completo: ${error.message}`, 'error');
             }
         }
+
+        // Configurar event listeners quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar botões
+            document.getElementById('testNetworkBtn').addEventListener('click', testNetworkDetection);
+            document.getElementById('testLocationBtn').addEventListener('click', testLocationDetection);
+            document.getElementById('testCompleteBtn').addEventListener('click', testCompleteDetection);
+            document.getElementById('clearResultsBtn').addEventListener('click', clearResults);
+        });
     </script>
 </body>
 </html>
