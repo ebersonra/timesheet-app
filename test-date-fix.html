@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Correção de Datas</title>
+</head>
+<body>
+    <h1>Teste de Correção de Datas</h1>
+    
+    <div id="test-results"></div>
+    
+    <script src="static/js/utils.js"></script>
+    <script>
+        // Teste de criação de datas
+        function testDateFix() {
+            const testResultsDiv = document.getElementById('test-results');
+            let results = '';
+            
+            // Teste 1: Data problemática 01/08/2025
+            const testDate = '2025-08-01';
+            
+            // Método antigo (problemático)
+            const oldWayDate = new Date(testDate);
+            results += `<h3>Teste para data: ${testDate}</h3>`;
+            results += `<p><strong>Método antigo:</strong> ${oldWayDate.toLocaleDateString('pt-BR')} (getMonth: ${oldWayDate.getMonth()}, getDate: ${oldWayDate.getDate()})</p>`;
+            
+            // Método novo (corrigido)
+            const newWayDate = Utils.createSafeDate(testDate);
+            results += `<p><strong>Método novo:</strong> ${newWayDate.toLocaleDateString('pt-BR')} (getMonth: ${newWayDate.getMonth()}, getDate: ${newWayDate.getDate()})</p>`;
+            
+            // Teste de geração de chave do mês
+            const oldMonthKey = `${oldWayDate.getFullYear()}-${String(oldWayDate.getMonth() + 1).padStart(2, '0')}`;
+            const newMonthKey = `${newWayDate.getFullYear()}-${String(newWayDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            results += `<p><strong>Chave do mês (método antigo):</strong> ${oldMonthKey}</p>`;
+            results += `<p><strong>Chave do mês (método novo):</strong> ${newMonthKey}</p>`;
+            
+            // Verificar se o problema foi corrigido
+            if (oldMonthKey !== newMonthKey) {
+                results += `<p style="color: green;"><strong>✅ CORREÇÃO APLICADA!</strong> O problema foi corrigido.</p>`;
+            } else {
+                results += `<p style="color: orange;"><strong>⚠️ Sem diferença detectada</strong> para esta data específica.</p>`;
+            }
+            
+            // Teste adicional com mais datas
+            const testDates = ['2025-08-01', '2025-07-31', '2025-01-01', '2025-12-31'];
+            results += '<h3>Teste com múltiplas datas:</h3>';
+            
+            testDates.forEach(date => {
+                const oldDate = new Date(date);
+                const newDate = Utils.createSafeDate(date);
+                
+                results += `<p><strong>${date}:</strong> `;
+                results += `Antigo: ${oldDate.toLocaleDateString('pt-BR')} | `;
+                results += `Novo: ${newDate.toLocaleDateString('pt-BR')}`;
+                if (oldDate.getDate() !== newDate.getDate()) {
+                    results += ` <span style="color: red;">⚠️ DIFERENÇA DETECTADA</span>`;
+                }
+                results += '</p>';
+            });
+            
+            testResultsDiv.innerHTML = results;
+        }
+        
+        // Executar teste quando a página carregar
+        window.addEventListener('load', testDateFix);
+    </script>
+</body>
+</html>

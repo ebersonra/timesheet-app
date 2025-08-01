@@ -144,6 +144,26 @@ class Utils {
         return `${year}-${month}-${day}`;
     }
 
+    // Criar Date de forma segura para evitar problemas de timezone
+    static createSafeDate(dateString) {
+        if (!dateString) return null;
+        
+        if (dateString.includes('-')) {
+            // Formato YYYY-MM-DD - criar data local sem problemas de timezone
+            const [year, month, day] = dateString.split('-');
+            return new Date(year, month - 1, day);
+        }
+        
+        if (dateString.includes('/')) {
+            // Formato DD/MM/YYYY - converter para YYYY-MM-DD primeiro
+            const [day, month, year] = dateString.split('/');
+            return new Date(year, month - 1, day);
+        }
+        
+        // Fallback para outros formatos
+        return new Date(dateString);
+    }
+
     // Gerar ID único
     static generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);

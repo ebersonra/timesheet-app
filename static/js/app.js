@@ -87,7 +87,8 @@ class TimesheetApp {
         const months = new Set();
         this.records.forEach(record => {
             if (record.dataEntrada) {
-                const date = new Date(record.dataEntrada);
+                // Criar data de forma segura para evitar problemas de timezone
+                const date = Utils.createSafeDate(record.dataEntrada);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 const monthLabel = date.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' });
                 months.add(JSON.stringify({ key: monthKey, label: monthLabel }));
@@ -743,7 +744,8 @@ class TimesheetApp {
 
             const matchesMonthFilter = !filterMonthTerm || (() => {
                 if (!record.dataEntrada) return false;
-                const date = new Date(record.dataEntrada);
+                // Criar data de forma segura para evitar problemas de timezone
+                const date = Utils.createSafeDate(record.dataEntrada);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 return monthKey === filterMonthTerm;
             })();
@@ -817,7 +819,8 @@ class TimesheetApp {
         const thisYear = now.getFullYear();
         
         const thisMonthRecords = this.records.filter(record => {
-            const recordDate = new Date(record.dataEntrada);
+            // Criar data de forma segura para evitar problemas de timezone
+            const recordDate = Utils.createSafeDate(record.dataEntrada);
             return recordDate.getMonth() === thisMonth && recordDate.getFullYear() === thisYear;
         });
 

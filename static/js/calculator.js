@@ -211,7 +211,8 @@ class TimesheetCalculator {
     calculatePeriodStats(records, startDate, endDate) {
         try {
             const filteredRecords = records.filter(record => {
-                const recordDate = new Date(record.dataEntrada);
+                // Criar data de forma segura para evitar problemas de timezone
+                const recordDate = Utils.createSafeDate(record.dataEntrada);
                 const start = new Date(startDate);
                 const end = new Date(endDate);
                 return recordDate >= start && recordDate <= end;

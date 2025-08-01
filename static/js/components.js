@@ -290,7 +290,8 @@ class UIComponents {
 
             const matchesMonthFilter = !filterMonthTerm || (() => {
                 if (!record.dataEntrada) return false;
-                const date = new Date(record.dataEntrada);
+                // Criar data de forma segura para evitar problemas de timezone
+                const date = Utils.createSafeDate(record.dataEntrada);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 return monthKey === filterMonthTerm;
             })();
@@ -505,7 +506,8 @@ class UIComponents {
 
                     const matchesMonthFilter = !filterMonthTerm || (() => {
                         if (!record.dataEntrada) return false;
-                        const date = new Date(record.dataEntrada);
+                        // Criar data de forma segura para evitar problemas de timezone
+                        const date = Utils.createSafeDate(record.dataEntrada);
                         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                         return monthKey === filterMonthTerm;
                     })();
